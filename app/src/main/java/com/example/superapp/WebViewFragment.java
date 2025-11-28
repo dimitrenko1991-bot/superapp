@@ -3,6 +3,7 @@ package com.example.superapp;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import androidx.fragment.app.Fragment;
 
@@ -13,6 +14,12 @@ import android.view.ViewGroup;
 import android.webkit.HttpAuthHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import com.google.android.material.transition.Hold;
+import android.os.Build;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class WebViewFragment extends Fragment {
 
@@ -41,6 +48,20 @@ public class WebViewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+        // Устанавливаем переход Hold, чтобы текущий фрагмент оставался
+        // видимым и не анимировался до готовности целевого фрагмента.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      //     setExitTransition(new Hold());
+        }
+
+        // 1. Отложить переход сразу после создания представления
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+       //     postponeEnterTransition();
+        }
+
+     //    startPostponedEnterTransition();
+
         View view = inflater.inflate(R.layout.fragment_webview, container, false);
 
         WebView webView = view.findViewById(R.id.my_webview);
@@ -48,9 +69,18 @@ public class WebViewFragment extends Fragment {
         webView.getSettings().setDomStorageEnabled(true);
         webView.getSettings().setDatabaseEnabled(true);
 
+        webView.getSettings().setBuiltInZoomControls(true);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setUseWideViewPort(true);
+
+        webView.getSettings().setLoadWithOverviewMode(true); // Загружает страницу полностью, используя широкий вьюпорт
+        webView.getSettings().setSupportZoom(true);
+
+
 
         webView.setWebViewClient(new WebViewClient());
         webView.loadUrl(URL); // Загрузите нужный URL
+        //webView.loadUrl("https:/www.mail.ru");
 
         SharedPreferences prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
         URL_WEBDAV = prefs.getString("url_WEBDAV","");
@@ -64,6 +94,20 @@ public class WebViewFragment extends Fragment {
         URL_GREEN = prefs.getString("url_GREEN","");
         username_GREEN = prefs.getString("username_GREEN","");
         password_GREEN = prefs.getString("password_GREEN","");
+/*
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            public void run() {
+
+                Log.d(TAG, "TIMER ");
+                startPostponedEnterTransition();
+                setExitTransition(new Hold());
+                postponeEnterTransition();
+                timer.cancel();
+            };
+        };
+        timer.schedule(task, 3000);
+  */
 
 
         webView.setWebViewClient(new WebViewClient() {
@@ -73,6 +117,8 @@ public class WebViewFragment extends Fragment {
 
                 //  Log.d(TAG, "your_server_host "+ host );
                 //  Log.d(TAG, "your_server_realm "+ realm );
+
+                //  Log.d(TAG, "HttpAuthRequest_____________________");
 
                 if (URL_GREEN.contains(host) && realm.equals("Motion"))
                 {
@@ -91,8 +137,36 @@ public class WebViewFragment extends Fragment {
                     // If no credentials are available, cancel the request or show a dialog
                     handler.cancel();
                 }
-
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url)
+            {
+                startPostponedEnterTransition();
+                Log.d(TAG, "onPageFinished_____________________");
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon)
+            {
+                //Log.d(TAG, "onPageStarted_____________________"+url+" vs "+URL_GREEN);
+
+                if (url.contains(URL_GREEN))
+                {
+                    startPostponedEnterTransition();
+                }
+                else if (url.contains(URL_RED))
+                {
+                    startPostponedEnterTransition();
+                }
+            }
+
+            @Override
+            public void onLoadResource(WebView view, String url)
+            {
+                //Log.d(TAG, "onLoadResource____________________"+url);
+            }
+
         });
 
         return view;

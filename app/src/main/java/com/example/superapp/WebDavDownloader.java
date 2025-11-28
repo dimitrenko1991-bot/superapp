@@ -22,11 +22,19 @@ import android.provider.MediaStore;
 import android.os.Build;
 import android.widget.Toast;
 
+import android.content.Intent;
+import java.io.FileNotFoundException;
+
+import android.content.ContentResolver;
+import android.database.Cursor;
+
 public class WebDavDownloader {
 
     private static final String TAG = "WebDavDownloader";
 
     private Handler uiHandler;
+
+    Context context;
 
     /**
      * Скачивает указанный файл с WebDAV-сервера.
@@ -41,6 +49,7 @@ public class WebDavDownloader {
         // Создание экземпляра Sardine должно выполняться в фоновом потоке.
 
         this.uiHandler = uiHandler;
+        this.context = context;
 
         new Thread(() -> {
             try {
@@ -80,7 +89,7 @@ public class WebDavDownloader {
                     InputStream inputStream = sardine.get(url+"/"+fileToDownload.getName());
 
                     // 4. Запись файла в локальное хранилище
-                    File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                   // File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
                     if (uri != null) {
                         try (OutputStream outputStream = resolver.openOutputStream(uri))
@@ -101,7 +110,42 @@ public class WebDavDownloader {
 
                                 uiHandler.post(() ->
                                 {
-                                    Toast.makeText(context, "Файл успешно сохранен в папку Загрузки", Toast.LENGTH_SHORT).show();
+                                    //Toast.makeText(context, "Файл успешно сохранен в папку Загрузки", Toast.LENGTH_SHORT).show();
+
+                                 //   Log.e("WebDavDownloader videoUrl3 ", getVideoUriFromDownloadFolder(targetFileName));
+
+                                    // Если видео в ресурсах raw (R.raw.my_video):
+                                    // String videoPath = "android.resource://" + getPackageName() + "/" + R.raw.my_video;
+
+                                    // Запускаем новую активность и передаем путь
+
+                                    try {
+                                        // Попытка открыть InputStream как способ проверки существования данных
+                                        InputStream inputStream1 = context.getContentResolver().openInputStream(uri);
+                                        if (inputStream1 != null) {
+                                            inputStream1.close();
+                                            // Данные существуют, можно воспроизводить
+                                            //Log.e(TAG, "URI подтвержден, воспроизведение начато: " + uri);
+                                            Intent intent = new Intent(context, VideoPlayerActivity.class);
+                                            intent.putExtra(VideoPlayerActivity.EXTRA_VIDEO_PATH, uri.toString());
+                                            context.startActivity(intent);
+                                        }
+                                        else
+                                        {
+                                            Log.e(TAG, "Данные по URI не найдены: " + uri);
+                                            Toast.makeText(context, "Данные по URI не найдены", Toast.LENGTH_SHORT).show();
+                                        }
+                                    } catch (FileNotFoundException e)
+                                    {
+                                        Log.e(TAG, "Файл не найден по URI: " + uri, e);
+                                        Toast.makeText(context, "Данные по URI не найдены", Toast.LENGTH_SHORT).show();
+                                    } catch (IOException e)
+                                    {
+                                        Log.e(TAG, "Ошибка ввода-вывода при проверке URI: " + uri, e);
+                                        Toast.makeText(context, "Данные по URI не найдены", Toast.LENGTH_SHORT).show();
+                                    }
+
+
                                 });
 
                             }
@@ -159,4 +203,5 @@ public class WebDavDownloader {
             }
         }).start();
     }
+
 }

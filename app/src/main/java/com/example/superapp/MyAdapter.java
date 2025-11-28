@@ -1,5 +1,6 @@
 package com.example.superapp;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,10 +34,15 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
         return new MyViewHolder(view);
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
         DavResource item = itemList.get(position);
-        holder.textViewItem.setText(item.getName());
+        int size = Math.toIntExact(item.getContentLength() / 1024);
+        if (size<1024)
+            holder.textViewItem.setText(item.getName()+"  ("+ size+" КБ)");
+        else
+            holder.textViewItem.setText(item.getName()+"  ("+ size / 1024+" МБ)");
     }
 
     @Override
@@ -60,7 +66,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.MyViewHolder> {
                     int position = getAdapterPosition();
                     String clickedItem = itemList.get(position).getName();
                     webdav.onClick(clickedItem);
-
                 }
             });
         }

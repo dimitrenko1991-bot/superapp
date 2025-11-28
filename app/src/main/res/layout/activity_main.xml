@@ -33,7 +33,7 @@
                 android:id="@+id/textView3"
                 android:layout_width="351dp"
                 android:layout_height="wrap_content"
-                android:text="version 1.0"
+                android:text="version 1.1"
                 android:textAlignment="center" />
 
             <ProgressBar

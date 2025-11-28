@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".VideoPlayerActivity">
+
+    <VideoView
+        android:id="@+id/videoViewPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true" />
+
+    <Button
+        android:id="@+id/buttonDownload"
+        android:layout_width="30dp"
+        android:layout_height="31dp"
+        android:layout_alignBottom="@id/videoViewPlayer"
+        android:layout_alignParentRight="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="25dp"
+        android:background="#A0000000"
+        android:text="  "
+        app:icon="@android:drawable/stat_sys_download"
+        app:iconGravity="textStart"
+        app:iconPadding="-8dp"
+        app:iconSize="35dp" />
+
+    <Button
+        android:id="@+id/buttonExit"
+        android:layout_width="30dp"
+        android:layout_height="37dp"
+        android:layout_alignBottom="@id/videoViewPlayer"
+        android:layout_alignParentRight="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="15dp"
+        android:layout_marginBottom="149dp"
+        android:background="#A0000000"
+        android:text=" "
+        app:icon="@android:drawable/ic_menu_close_clear_cancel"
+        app:iconGravity="textStart"
+        app:iconPadding="-5dp"
+        app:iconSize="35dp" />
+
+</RelativeLayout>

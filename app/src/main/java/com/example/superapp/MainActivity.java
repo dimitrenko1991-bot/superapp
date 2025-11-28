@@ -46,6 +46,10 @@ import androidx.fragment.app.FragmentTransaction;
 
 import android.content.SharedPreferences;
 
+import android.os.Build;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+
 
 public class MainActivity extends AppCompatActivity  {
 
@@ -67,7 +71,7 @@ public class MainActivity extends AppCompatActivity  {
     private TextView textViewLastUpdate;
 
     public Context context;
-    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private static final int PERMISSION_REQUEST_CODE = 101;
 
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -146,23 +150,9 @@ public class MainActivity extends AppCompatActivity  {
         udpThread = new UdpCommunicationThread(SOURCE_PORT_UDP, uiHandler, textViewSpaceRed, textViewLastUpdate, progressBarFreeSpace, imageView);
         udpThread.start();
 
-        // Проверяем и запрашиваем разрешение на запись в хранилище
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    REQUEST_WRITE_EXTERNAL_STORAGE);
-            Log.e(TAG, "ЗАПРЕЩЕНО" );
-            // getExternalFilesDir()
-        }
-        else
-        {
-            Log.e(TAG, "РАЗРЕШЕНО" );
-        }
-
         startTcpClient();
 
-        requestStoragePermission();
+        checkAndRequestPermissions();
 
         radioWEBDAV.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -233,9 +223,17 @@ public class MainActivity extends AppCompatActivity  {
         myProgressBarTCP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onStop();
-                executorService = Executors.newSingleThreadExecutor();
-                startTcpClient();
+
+                Drawable background = myProgressBarTCP.getBackground();
+
+                if (background instanceof ColorDrawable && ((ColorDrawable) background).getColor() == 0x6000FF00) {
+                    onStop();
+                }
+                else
+                {
+                    executorService = Executors.newSingleThreadExecutor();
+                    startTcpClient();
+                }
             }
         });
 
@@ -293,50 +291,56 @@ public class MainActivity extends AppCompatActivity  {
         }
     }
 
+
+    private void checkAndRequestPermissions() {
+        // Определяем, какое разрешение запрашивать
+        String permissionToRequest;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU /* Android 13 */) {
+            permissionToRequest = Manifest.permission.READ_MEDIA_VIDEO;
+        } else {
+            permissionToRequest = Manifest.permission.READ_EXTERNAL_STORAGE;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, permissionToRequest) != PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{permissionToRequest},
+                    PERMISSION_REQUEST_CODE);
+            Log.e(TAG, "Разрешение на запись в хранилище не разрешено. Запрос");
+        } else {
+            //playVideoFromDownloadFolder();
+            Log.e(TAG, "Разрешение на запись в хранилище предоставлено");
+        }
+    }
+
     // Обработка результата запроса разрешений
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+        if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Разрешение предоставлено
                 //startDownload(getDavResources()); // Вызов скачивания
                 Log.e(TAG, "Разрешение на запись в хранилище разрешено.");
             } else {
                 // Разрешение отклонено
-                Log.e(TAG, "Разрешение на запись в хранилище отклонено.");
+                Log.e(TAG, "Разрешение на запись в хранилище отклонено."+ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE));
             }
-        }
-    }
-
-    private ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    Log.e(TAG, "Разрешение на запись в хранилище разрешено1111.");
-                } else {
-                    Log.e(TAG, "Разрешение на запись в хранилище не разрешено11111.");
-                }
-            });
-
-
-    private void requestStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-            // Разрешение уже есть.
-            Log.e(TAG, "Разрешение уже есть.");
-            // Запускаем код для работы с изображениями.
-        } else if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            // Показываем пояснение, почему нам нужно разрешение.
-            // Например, с помощью диалога.
-        } else {
-            // Запрашиваем разрешение.
-            //requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_IMAGES);
-            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
     }
 
     private void replaceFragment(Fragment fragment) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        fragmentTransaction.setReorderingAllowed(true);
+
+        // Применение пользовательских анимаций для входа, выхода и возврата
+        fragmentTransaction.setCustomAnimations(
+                R.anim.slide_in_right, // enter
+                R.anim.slide_out_left,  // exit
+                R.anim.slide_in_left,  // popEnter
+                R.anim.slide_out_right // popExit
+        );
 
         // Заменяем текущий фрагмент в контейнере R.id.fragment_placeholder
         // на новый экземпляр fragment
@@ -347,6 +351,16 @@ public class MainActivity extends AppCompatActivity  {
 
         // Применяем изменения
         fragmentTransaction.commit();
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //Log.d(TAG, "onStart: Activity становится видимым");
+        onStop();
+        executorService = Executors.newSingleThreadExecutor();
+        startTcpClient();
     }
 
 
