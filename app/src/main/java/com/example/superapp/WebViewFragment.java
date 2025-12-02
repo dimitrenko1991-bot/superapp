@@ -15,17 +15,15 @@ import android.webkit.HttpAuthHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import com.google.android.material.transition.Hold;
-import android.os.Build;
-
-import java.util.Timer;
-import java.util.TimerTask;
+import androidx.activity.OnBackPressedCallback;
+import android.widget.Toast;
 
 public class WebViewFragment extends Fragment {
 
     private static final String TAG = "WebViewFragment";
+    private static final String ARG_URL = "fragment_url_key"; // Ключ для Bundle
 
-    private static String URL;
+    private static String currentUrl;
     private static String URL_WEBDAV;
     private String username_WEBDAV;
     private String password_WEBDAV;
@@ -36,31 +34,32 @@ public class WebViewFragment extends Fragment {
     private String username_GREEN;
     private String password_GREEN;
 
-    public Context context; // Сохраняем ссылку на контекст
-
-    public WebViewFragment(String URL, Context context)
+    public WebViewFragment()
     {
-        WebViewFragment.URL = URL;
-        this.context = context;
+    }
+
+    public static WebViewFragment newInstance(String url) {
+        WebViewFragment fragment = new WebViewFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_URL, url);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Получаем URL из аргументов
+        if (getArguments() != null) {
+            currentUrl = getArguments().getString(ARG_URL);
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-
-        // Устанавливаем переход Hold, чтобы текущий фрагмент оставался
-        // видимым и не анимировался до готовности целевого фрагмента.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      //     setExitTransition(new Hold());
-        }
-
-        // 1. Отложить переход сразу после создания представления
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-       //     postponeEnterTransition();
-        }
-
-     //    startPostponedEnterTransition();
+                             Bundle savedInstanceState)
+    {
 
         View view = inflater.inflate(R.layout.fragment_webview, container, false);
 
@@ -76,13 +75,9 @@ public class WebViewFragment extends Fragment {
         webView.getSettings().setLoadWithOverviewMode(true); // Загружает страницу полностью, используя широкий вьюпорт
         webView.getSettings().setSupportZoom(true);
 
+   //     webView.setWebViewClient(new WebViewClient());
 
-
-        webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl(URL); // Загрузите нужный URL
-        //webView.loadUrl("https:/www.mail.ru");
-
-        SharedPreferences prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
+        SharedPreferences prefs = requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE);
         URL_WEBDAV = prefs.getString("url_WEBDAV","");
         username_WEBDAV = prefs.getString("username_WEBDAV","");
         password_WEBDAV = prefs.getString("password_WEBDAV","");
@@ -94,21 +89,11 @@ public class WebViewFragment extends Fragment {
         URL_GREEN = prefs.getString("url_GREEN","");
         username_GREEN = prefs.getString("username_GREEN","");
         password_GREEN = prefs.getString("password_GREEN","");
-/*
-        Timer timer = new Timer();
-        TimerTask task = new TimerTask() {
-            public void run() {
 
-                Log.d(TAG, "TIMER ");
-                startPostponedEnterTransition();
-                setExitTransition(new Hold());
-                postponeEnterTransition();
-                timer.cancel();
-            };
-        };
-        timer.schedule(task, 3000);
-  */
+        webView.loadUrl(currentUrl); // Загрузите нужный URL
+        //webView.loadUrl("https:/www.mail.ru");
 
+        setupOnBackPressedCallback();
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -142,7 +127,7 @@ public class WebViewFragment extends Fragment {
             @Override
             public void onPageFinished(WebView view, String url)
             {
-                startPostponedEnterTransition();
+                //startPostponedEnterTransition();
                 Log.d(TAG, "onPageFinished_____________________");
             }
 
@@ -153,11 +138,11 @@ public class WebViewFragment extends Fragment {
 
                 if (url.contains(URL_GREEN))
                 {
-                    startPostponedEnterTransition();
+                   // startPostponedEnterTransition();
                 }
                 else if (url.contains(URL_RED))
                 {
-                    startPostponedEnterTransition();
+                   // startPostponedEnterTransition();
                 }
             }
 
@@ -172,6 +157,37 @@ public class WebViewFragment extends Fragment {
         return view;
     }
 
+    // Вынесем логику обработки жеста "назад" в отдельный метод
+    private void setupOnBackPressedCallback() {
+        // Создаем callback, который перехватывает нажатие/жест назад
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled */) {
+            @Override
+            public void handleOnBackPressed() {
+                // Здесь мы блокируем стандартное поведение "назад".
+                // Вы можете добавить сюда любую свою логику.
 
+                // Например, показать сообщение пользователю:
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Действие 'Назад' заблокировано в этом режиме.", Toast.LENGTH_SHORT).show();
+                }
+
+                // Если WebView может вернуться на предыдущую страницу внутри себя:
+                /*
+                if (webView.canGoBack()) {
+                    webView.goBack();
+                } else {
+                    // Если WebView не может вернуться, вы можете вызвать системный "назад"
+                    // setEnabled(false); // Сначала отключаем callback
+                    // requireActivity().onBackPressed(); // Затем вызываем стандартное действие
+                }
+                */
+            }
+        };
+
+        // Регистрируем этот callback в диспетчере нажатий кнопки "назад" вашей активности
+        // Привязываем его к жизненному циклу представления фрагмента (getViewLifecycleOwner()),
+        // чтобы он автоматически удалялся, когда фрагмент исчезает.
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), callback);
+    }
 
 }

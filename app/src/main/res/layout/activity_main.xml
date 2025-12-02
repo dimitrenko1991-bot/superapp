@@ -33,7 +33,7 @@
                 android:id="@+id/textView3"
                 android:layout_width="351dp"
                 android:layout_height="wrap_content"
-                android:text="version 1.1"
+                android:text="version 1.2"
                 android:textAlignment="center" />
 
             <ProgressBar
@@ -195,11 +195,7 @@
             android:id="@+id/fragmentContainerView"
             android:name="androidx.fragment.app.ListFragment"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-
-
-
+            android:layout_height="match_parent" />
 
     </LinearLayout>
 

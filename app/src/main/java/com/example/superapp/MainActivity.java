@@ -37,9 +37,6 @@ import android.net.Uri;
 
 import android.widget.RadioButton;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -49,6 +46,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.content.pm.ActivityInfo;
 
 
 public class MainActivity extends AppCompatActivity  {
@@ -58,7 +56,7 @@ public class MainActivity extends AppCompatActivity  {
     private static int SERVER_PORT_UDP;
     private static int SERVER_PORT_TCP;
     private static String URL_WEBDAV;
-    private static String URL_RED;
+    private String URL_RED;
     private static String URL_GREEN;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     public TextView textViewSpaceRed;
@@ -85,6 +83,9 @@ public class MainActivity extends AppCompatActivity  {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        // Устанавливаем ориентацию только в портретную
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         // 1. Get the SharedPreferences instance
         SharedPreferences prefs = getSharedPreferences("settings", Context.MODE_PRIVATE);
@@ -150,7 +151,7 @@ public class MainActivity extends AppCompatActivity  {
         udpThread = new UdpCommunicationThread(SOURCE_PORT_UDP, uiHandler, textViewSpaceRed, textViewLastUpdate, progressBarFreeSpace, imageView);
         udpThread.start();
 
-        startTcpClient();
+     //   startTcpClient();
 
         checkAndRequestPermissions();
 
@@ -160,7 +161,7 @@ public class MainActivity extends AppCompatActivity  {
                 radioCAM1.setChecked(false);
                 radioCAM2.setChecked(false);
 
-                replaceFragment(new RecyclerViewFragment(context));
+                replaceFragment(new RecyclerViewFragment());
             }
         });
 
@@ -170,7 +171,8 @@ public class MainActivity extends AppCompatActivity  {
                 radioWEBDAV.setChecked(false);
                 radioCAM2.setChecked(false);
 
-                replaceFragment(new WebViewFragment(URL_RED, context));
+                WebViewFragment webViewFragment = WebViewFragment.newInstance(URL_RED);
+                replaceFragment(webViewFragment);
             }
         });
 
@@ -180,7 +182,8 @@ public class MainActivity extends AppCompatActivity  {
                 radioWEBDAV.setChecked(false);
                 radioCAM1.setChecked(false);
 
-                replaceFragment(new WebViewFragment(URL_GREEN, context));
+                WebViewFragment webViewFragment = WebViewFragment.newInstance(URL_GREEN);
+                replaceFragment(webViewFragment);
             }
         });
 
@@ -336,10 +339,10 @@ public class MainActivity extends AppCompatActivity  {
 
         // Применение пользовательских анимаций для входа, выхода и возврата
         fragmentTransaction.setCustomAnimations(
-                R.anim.slide_in_right, // enter
-                R.anim.slide_out_left,  // exit
-                R.anim.slide_in_left,  // popEnter
-                R.anim.slide_out_right // popExit
+            //    R.anim.slide_in_right, // enter
+            //    R.anim.slide_out_left,  // exit
+                R.anim.slide_in,  // popEnter
+                R.anim.slide_out // popExit
         );
 
         // Заменяем текущий фрагмент в контейнере R.id.fragment_placeholder
