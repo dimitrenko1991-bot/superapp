@@ -3,6 +3,7 @@ package com.example.superapp;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -48,8 +49,10 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.content.pm.ActivityInfo;
 
+import android.graphics.Color;
 
-public class MainActivity extends AppCompatActivity  {
+
+public class MainActivity extends AppCompatActivity implements ConnectionStatusListenerTCP, ConnectionStatusListenerUDP {
 
     private static final String TAG = "MainActivity";
     private static String SERVER_IP;
@@ -71,6 +74,11 @@ public class MainActivity extends AppCompatActivity  {
     public Context context;
     private static final int PERMISSION_REQUEST_CODE = 101;
 
+    RadioButton radioWEBDAV;
+    RadioButton radioCAM1;
+    RadioButton radioCAM2;
+
+    Button buttonRefreshSpace;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -117,21 +125,21 @@ public class MainActivity extends AppCompatActivity  {
         editor.apply(); // or editor.commit();
 */
 
-        SERVER_IP = prefs.getString("dest_ip","");
-        SERVER_PORT_UDP = prefs.getInt("port_udp_target",1);
+        SERVER_IP = prefs.getString("dest_ip", "");
+        SERVER_PORT_UDP = prefs.getInt("port_udp_target", 1);
         int SOURCE_PORT_UDP = prefs.getInt("port_udp_source", 1);
-        URL_WEBDAV = prefs.getString("url_WEBDAV","");
-        URL_RED = prefs.getString("url_RED","");
-        URL_GREEN = prefs.getString("url_GREEN","");
-        SERVER_PORT_TCP = prefs.getInt("port_tcp_server",1);
+        URL_WEBDAV = prefs.getString("url_WEBDAV", "");
+        URL_RED = prefs.getString("url_RED", "");
+        URL_GREEN = prefs.getString("url_GREEN", "");
+        SERVER_PORT_TCP = prefs.getInt("port_tcp_server", 1);
 
         textViewSpaceRed = findViewById(R.id.textViewSpaceRed);
-        Button sendButton = findViewById(R.id.buttonRefresh);
-        Button sendButtonClear= findViewById(R.id.buttonClear);
+        Button buttonClearSpace = findViewById(R.id.buttonClear);
+        buttonRefreshSpace = findViewById(R.id.buttonRefresh);
 
-        RadioButton radioWEBDAV = findViewById(R.id.radioButtonWEBDAV);
-        RadioButton radioCAM1 = findViewById(R.id.radioButtonCAM1);
-        RadioButton radioCAM2 = findViewById(R.id.radioButtonCAM2);
+        radioWEBDAV = findViewById(R.id.radioButtonWEBDAV);
+        radioCAM1 = findViewById(R.id.radioButtonCAM1);
+        radioCAM2 = findViewById(R.id.radioButtonCAM2);
 
         Button buttonWEBBROWSER = findViewById(R.id.buttonWEB);
 
@@ -139,7 +147,7 @@ public class MainActivity extends AppCompatActivity  {
 
         progressBarFreeSpace = findViewById(R.id.progressBarFreeSpace);
 
-        myProgressBarTCP =  findViewById(R.id.progressBarTCP);
+        myProgressBarTCP = findViewById(R.id.progressBarTCP);
 
         textViewLastUpdate = findViewById(R.id.TimeUpdate);
 
@@ -147,11 +155,9 @@ public class MainActivity extends AppCompatActivity  {
 
         executorService = Executors.newSingleThreadExecutor();
 
-        // Создаём поток для UDP-коммуникации, передавая ему Handler для взаимодействия с UI
-        udpThread = new UdpCommunicationThread(SOURCE_PORT_UDP, uiHandler, textViewSpaceRed, textViewLastUpdate, progressBarFreeSpace, imageView);
-        udpThread.start();
+        udpThread = new UdpCommunicationThread(SOURCE_PORT_UDP, this);
 
-     //   startTcpClient();
+        udpThread.start();
 
         checkAndRequestPermissions();
 
@@ -193,7 +199,7 @@ public class MainActivity extends AppCompatActivity  {
 
                 Uri address;
                 if (radioWEBDAV.isChecked())
-                address = Uri.parse(URL_WEBDAV);
+                    address = Uri.parse(URL_WEBDAV);
                 else if (radioCAM1.isChecked())
                     address = Uri.parse(URL_RED);
                 else if (radioCAM2.isChecked())
@@ -205,7 +211,7 @@ public class MainActivity extends AppCompatActivity  {
             }
         });
 
-        sendButton.setOnClickListener(new View.OnClickListener() {
+        buttonRefreshSpace.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //String message = "Remote"; //0x10
@@ -226,56 +232,46 @@ public class MainActivity extends AppCompatActivity  {
         myProgressBarTCP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                myProgressBarTCP.setEnabled(false);
+
+                myProgressBarTCP.setAlpha(0.05f);
 
                 Drawable background = myProgressBarTCP.getBackground();
-
-                if (background instanceof ColorDrawable && ((ColorDrawable) background).getColor() == 0x6000FF00) {
-                    onStop();
+                if (background instanceof ColorDrawable && ((ColorDrawable) background).getColor() == 0x3000FF00)
+                {
+                    stopTcpClient();
                 }
                 else
                 {
                     executorService = Executors.newSingleThreadExecutor();
                     startTcpClient();
                 }
+
+
             }
         });
 
-        sendButtonClear.setOnClickListener(new View.OnClickListener() {
+        buttonClearSpace.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-          //      String message = "CL"; //0x02
+                //      String message = "CL"; //0x02
                 byte[] bufferPACK = {0x02};
                 udpThread.sendMessage(bufferPACK, SERVER_IP, SERVER_PORT_UDP);
             }
         });
 
-        sendButton.performClick();
+       // buttonRefreshSpace.performClick();
         radioWEBDAV.performClick();
 
     }
 
     @SuppressLint("SetTextI18n")
-    private void startTcpClient()
-    {
+    private void startTcpClient() {
 
         executorService.execute(() ->
         {
             try {
-                tcpClient = new TcpClient(SERVER_IP, SERVER_PORT_TCP, uiHandler, myProgressBarTCP, context, message ->
-                {
-                    // Post UI updates to the main thread
-                    uiHandler.post(() ->
-                    {
-                        //responseTextView.append("Server: " + message. + "\n");
-                        //Log.d(TAG, "Message received: " + message.getByteCount());
-                        imageView.setImageBitmap(message);
-
-                        LocalTime currentTime = LocalTime.now();
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-
-                        textViewLastUpdate.setText(currentTime.format(formatter)+" (TCP)");
-                    });
-                });
+                tcpClient = new TcpClient(SERVER_IP, SERVER_PORT_TCP, this);
                 tcpClient.run();
             } catch (Exception e) {
                 Log.e(TAG, "Ошибка в фоновом потоке при startTcpClient: " + e.getMessage());
@@ -286,6 +282,11 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onStop() {
         super.onStop();
+        stopTcpClient();
+    }
+
+    protected void stopTcpClient()
+    {
         if (tcpClient != null) {
             tcpClient.stopClient();
         }
@@ -304,8 +305,7 @@ public class MainActivity extends AppCompatActivity  {
             permissionToRequest = Manifest.permission.READ_EXTERNAL_STORAGE;
         }
 
-        if (ContextCompat.checkSelfPermission(this, permissionToRequest) != PackageManager.PERMISSION_GRANTED)
-        {
+        if (ContextCompat.checkSelfPermission(this, permissionToRequest) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{permissionToRequest},
                     PERMISSION_REQUEST_CODE);
@@ -327,7 +327,7 @@ public class MainActivity extends AppCompatActivity  {
                 Log.e(TAG, "Разрешение на запись в хранилище разрешено.");
             } else {
                 // Разрешение отклонено
-                Log.e(TAG, "Разрешение на запись в хранилище отклонено."+ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE));
+                Log.e(TAG, "Разрешение на запись в хранилище отклонено." + ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE));
             }
         }
     }
@@ -339,8 +339,8 @@ public class MainActivity extends AppCompatActivity  {
 
         // Применение пользовательских анимаций для входа, выхода и возврата
         fragmentTransaction.setCustomAnimations(
-            //    R.anim.slide_in_right, // enter
-            //    R.anim.slide_out_left,  // exit
+                //    R.anim.slide_in_right, // enter
+                //    R.anim.slide_out_left,  // exit
                 R.anim.slide_in,  // popEnter
                 R.anim.slide_out // popExit
         );
@@ -360,12 +360,101 @@ public class MainActivity extends AppCompatActivity  {
     @Override
     protected void onStart() {
         super.onStart();
-        //Log.d(TAG, "onStart: Activity становится видимым");
-        onStop();
+        Log.d(TAG, "onStart: Activity становится видимым");
+        stopTcpClient();
         executorService = Executors.newSingleThreadExecutor();
+        buttonRefreshSpace.performClick();
         startTcpClient();
+
+        if (radioWEBDAV.isChecked())
+        {}
+           // radioWEBDAV.performClick();
+        else if (radioCAM1.isChecked())
+            radioCAM1.performClick();
+        else if (radioCAM2.isChecked())
+            radioCAM2.performClick();
+    }
+
+    @Override
+    public void onConnectionSuccessTCP() {
+        // Здесь мы используем НАСТОЯЩИЙ Context Activity
+        // для обновления UI безопасно
+        // myProgressBarTCP.setBackgroundColor(0x6000FF00);
+        // myProgressBarTCP.setForeground(ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground));
+        uiHandler.post(() ->
+        {
+            myProgressBarTCP.setBackgroundColor(0x3000FF00);
+            Drawable emptyDrawable = new ColorDrawable(Color.TRANSPARENT);
+            myProgressBarTCP.setForeground(emptyDrawable);
+            myProgressBarTCP.setEnabled(true);
+            myProgressBarTCP.setAlpha(1.0f);
+        });
+    }
+
+    @Override
+    public void onConnectionFailureTCP() {
+        // Здесь мы используем НАСТОЯЩИЙ Context Activity
+        // для обновления UI безопасно
+        //myProgressBarTCP.setBackgroundColor(0x6000FF00);
+        //myProgressBarTCP.setForeground(ContextCompat.getDrawable(this, R.drawable.ic_launcher_foreground));
+
+        uiHandler.post(() ->
+        {
+            myProgressBarTCP.setBackgroundColor(0x30FF0000);
+            Drawable emptyDrawable = new ColorDrawable(Color.TRANSPARENT);
+            myProgressBarTCP.setForeground(emptyDrawable);
+            myProgressBarTCP.setEnabled(true);
+            myProgressBarTCP.setAlpha(1.0f);
+        });
+    }
+
+    @SuppressLint("SetTextI18n")
+    @Override
+    public void onImageReceivedTCP(Bitmap bitmap) {
+        uiHandler.post(() ->
+        {
+            //responseTextView.append("Server: " + message. + "\n");
+            //Log.d(TAG, "Message received: " + message.getByteCount());
+            imageView.setImageBitmap(bitmap);
+
+            LocalTime currentTime = LocalTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+            textViewLastUpdate.setText(currentTime.format(formatter) + " (TCP)");
+        });
     }
 
 
+    @Override
+    public void onProgressUpdateUDP(int progress, String statusText) {
+        uiHandler.post(() -> {
+            progressBarFreeSpace.setProgress(progress, true);
+            textViewSpaceRed.setText(statusText);
+        });
+    }
+
+    @Override
+    public void onImageReceivedUDP(Bitmap bitmap) {
+        uiHandler.post(() -> {
+            imageView.setImageBitmap(bitmap);
+            LocalTime currentTime = LocalTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+            textViewLastUpdate.setText(currentTime.format(formatter) + " (UDP)");
+        });
+
+    }
+
+    @Override
+    public void onStatusUpdateUDP(String statusText) {
+        // Обработка общего статуса, если нужно
+    }
+
+    @Override
+    public void onErrorUDP(String errorMessage) {
+        uiHandler.post(() -> {
+            Log.e("MainActivity", "UDP Error: " + errorMessage);
+            // Показать Toast или AlertDialog
+        });
+    }
 
 }

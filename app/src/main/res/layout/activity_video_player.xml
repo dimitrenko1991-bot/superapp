@@ -12,42 +12,46 @@
         android:layout_height="match_parent"
         android:layout_centerInParent="true" />
 
-    <Button
-        android:id="@+id/buttonDownload"
-        android:layout_width="30dp"
-        android:layout_height="31dp"
-        android:layout_alignBottom="@id/videoViewPlayer"
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         android:layout_alignParentRight="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="15dp"
-        android:layout_marginBottom="25dp"
-        android:background="#A0000000"
-        android:text="  "
-        app:icon="@android:drawable/stat_sys_download"
-        app:iconGravity="textStart"
-        app:iconPadding="-8dp"
-        app:iconSize="35dp" />
+        android:layout_centerVertical="true"
+        android:layout_marginRight="10dp"
+        tools:ignore="RtlHardcoded">
 
-    <Button
-        android:id="@+id/buttonExit"
-        android:layout_width="30dp"
-        android:layout_height="37dp"
-        android:layout_alignBottom="@id/videoViewPlayer"
-        android:layout_alignParentRight="true"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="15dp"
-        android:layout_marginBottom="149dp"
-        android:background="#A0000000"
-        android:text=" "
-        app:icon="@android:drawable/ic_menu_close_clear_cancel"
-        app:iconGravity="textStart"
-        app:iconPadding="-5dp"
-        app:iconSize="35dp" />
+        <Button
+            android:id="@+id/buttonExit"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="#2fffffff"
+            android:text=" "
+            app:icon="@android:drawable/ic_menu_close_clear_cancel"
+            app:iconGravity="textStart"
+            app:iconPadding="-5dp"
+            app:iconSize="35dp"
+            tools:ignore="HardcodedText" />
+
+        <!-- Добавляем небольшой отступ между кнопками -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="100dp" />
+
+        <Button
+            android:id="@+id/buttonDownload"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="#2fffffff"
+            android:text="  "
+            app:icon="@android:drawable/stat_sys_download"
+            app:iconGravity="textStart"
+            app:iconPadding="-8dp"
+            app:iconSize="35dp"
+            tools:ignore="HardcodedText" />
+
+    </LinearLayout>
+
+
 
 </RelativeLayout>

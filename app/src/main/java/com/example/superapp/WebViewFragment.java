@@ -168,7 +168,7 @@ public class WebViewFragment extends Fragment {
 
                 // Например, показать сообщение пользователю:
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Действие 'Назад' заблокировано в этом режиме.", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getContext(), "Действие 'Назад' заблокировано в этом режиме.", Toast.LENGTH_SHORT).show();
                 }
 
                 // Если WebView может вернуться на предыдущую страницу внутри себя:
